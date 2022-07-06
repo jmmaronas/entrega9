@@ -1,0 +1,31 @@
+<%- include("./partials/head.ejs")%>
+
+    <body>
+        <%- include("./partials/nav.ejs")%>
+        <div class="container d-flex justify-content-around mt-5">
+            <div class="d-flex flex-column col-8">
+                <h1 class="my-2 text-primary">Ingrese Productos</h1>
+                <form id="datosProductos" action="" method="">
+                    <div class="mb-3">
+                        <label for="nombreProducto" class="form-label">Producto</label>
+                        <input id="nombreProducto" type="text" class="form-control" name="title"
+                            aria-describedby="emailHelp" value="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="precioProducto" class="form-label">Precio</label>
+                        <input id="precioProducto" type="number" class="form-control" name="price"
+                            value="">
+                    </div>
+                    <div class="mb-3">
+                        <label for="imgProducto" class="form-label">Url Imagens</label>
+                        <input id="imgProducto" type="text" class="form-control" name="thumbnail"
+                            value="" aria-describedby="emailHelp">
+                    </div>
+                    <input type="number" name="id" id="" value="" hidden>
+                    <button type="submit" class="btn btn-primary mt-3 w-100">Enviar</button>
+                </form>
+            </div>
+        </div>
+        <%- include("./partials/tablaProdudctos.ejs")%>
+        <%- include("./partials/chat.ejs")%>
+    <%- include("./partials/footer.ejs")%>
