@@ -25,7 +25,18 @@ const chatContainer = document.getElementById("chatContainer")
 const registroTabla = document.getElementById("registroTabla")
 const formProductos = document.getElementById("datosProductos")
 
+const logout=document.getElementById("logout")
+const userName=document.getElementById("userName")
+const banner=document.getElementById("banner")
 
+userName.innerHTML=document.cookie.split("=")[1]
+logout.addEventListener("click",()=>{
+    banner.innerHTML=`<h1>Hasta luego ${document.cookie.split("=")[1]}</h1>`
+    fetch("/logout")    
+    setTimeout(() => {
+        location.href="/"
+    }, 2000);
+})
 socket.on("bienvenida", data => {
     console.log(data)
     const datos = denormalize(data.result, messageArray, data.entities)

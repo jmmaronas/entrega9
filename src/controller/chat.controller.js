@@ -10,19 +10,11 @@ const messageSchema=new schema.Entity('messages',{
 })
 
 const messageArray= new schema.Array(messageSchema)
-// async function prueba(){
-//     const db=await Mensaje.find()    
-//     const normalizeMessage=normalize(db, messageArray)
-//     console.log(normalizeMessage)
-//     return db
-// }
-// prueba()
 
 async function getAllChats(){
     try{
         const db=await Mensaje.find()          
-        const normalizaMessage=normalize(db, messageArray)
-        console.log(normalizaMessage)
+        const normalizaMessage=normalize(db, messageArray)        
         return normalizaMessage
     }catch(err){err=>console.error(err)}
 }
