@@ -28,13 +28,17 @@ app.set("view engine", "ejs")
 
 app.use(cookieParser())
 app.use(session({
-    store: MongoStore.create({ mongoUrl: MONGODB_URI }),
+    store: MongoStore.create({
+        mongoUrl: MONGODB_URI,
+        mongoOptions: {
+            useNewUrlParser: true,
+            useUnifiedTopology: true
+        },
+        ttl: 600000
+    }),
     secret: "qwerty",
     resave: true,
-    saveUninitialized: true,
-    cookie: {
-        maxAge: 6000
-    }
+    saveUninitialized: true
 }))
 
 app.use(express.json())
@@ -45,7 +49,7 @@ connectDB()
 
 
 app.get("/", auth, (req, res) => {
-    res.cookie('userName', req.session.name).render("index", {user:req.session.name})
+    res.cookie('userName', req.session.name).render("index", { user: req.session.name })
 })
 app.get("/api/productos-test", (req, res) => {
     const db = getAllTest()
@@ -56,17 +60,17 @@ app.get("/login", (req, res) => {
     res.render("login.ejs")
 })
 app.post("/login", (req, res) => {
-    req.session.name = req.body.name    
+    req.session.name = req.body.name
     res.redirect("/")
 })
-app.get("/logout", (req,res)=>{
+app.get("/logout", (req, res) => {
     return req.session.destroy(err => {
         if (!err) {
             return res.clearCookie("userName").send({ logout: true })
         }
         return res.send({ err: err })
-    })    
-    
+    })
+
 })
 const server = httpServer.listen(PORT, "127.0.0.1", () => {
     console.log(`Server on port: ${server.address().port}`)
