@@ -14,7 +14,8 @@ const messageArray= new schema.Array(messageSchema)
 async function getAllChats(){
     try{
         const db=await Mensaje.find()          
-        const normalizaMessage=normalize(db, messageArray)        
+        const normalizaMessage=normalize(db, messageArray) 
+        //console.log(normalizaMessage)       
         return normalizaMessage
     }catch(err){err=>console.error(err)}
 }

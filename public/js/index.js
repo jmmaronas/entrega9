@@ -44,8 +44,8 @@ socket.on("bienvenida", data => {
     datos.map(element => {
         chatContainer.innerHTML += `
         <div>
-            <strong class="text-primary">${element.usuario}</strong><span class="text-danger">[${element.date}]</span>:
-                <em class="text-success" >${element.mensaje}</em>
+            <strong class="text-primary">${element._doc.author.nombre}</strong><span class="text-danger">[${element.date}]</span>:
+                <em class="text-success" >${element._doc.mensaje}</em>
         </div>                
     `
     })

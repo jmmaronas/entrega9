@@ -45,7 +45,7 @@ connectDB()
 
 
 app.get("/", auth, (req, res) => {
-    res.cookie('userName', req.session.name).render("index")
+    res.cookie('userName', req.session.name).render("index", {user:req.session.name})
 })
 app.get("/api/productos-test", (req, res) => {
     const db = getAllTest()
@@ -77,7 +77,7 @@ server.on("error", (err) => {
 })
 
 io.on("connection", async socket => {
-    //console.log("NuevoCliente concectado", socket.id)
+    console.log("NuevoCliente concectado", socket.id)
     socket.emit("bienvenida", await getAllChats())
     socket.emit("bdProductos", await getAllTest())
 
