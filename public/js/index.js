@@ -38,7 +38,7 @@ logout.addEventListener("click",()=>{
     }, 2000);
 })
 socket.on("bienvenida", data => {
-    console.log(data)
+    console.log(data.entities)
     const datos = denormalize(data.result, messageArray, data.entities)
     console.log(datos)
     datos.map(element => {

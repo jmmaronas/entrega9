@@ -1,16 +1,24 @@
 const express = require("express")
-const cookieParser = require("cookie-parser")
-const session = require("express-session")
+
 const MongoStore = require("connect-mongo")
+const session = require("express-session")
+const passport = require("passport")
+const { Strategy: LocalStrategy } = require('passport-local')
+const { createHash, isValidPassword } = require('./src/util/util.js')
+const flash = require('connect-flash')
+
 const { Server: HttpServer } = require("http")
 const { Server: IOServer } = require("socket.io")
+
 const ejs = require("ejs")
 const path = require("path")
 const cors = require("cors")
+
 const { getAllTest } = require("./src/services/app.facker.js")
 const { connectDB } = require('./db.js')
 const { getAllChats, addChat } = require('./src/controller/chat.controller.js')
 const { MONGODB_URI } = require("./config.js")
+const User = require("./src/model/user.js")
 
 const PORT = process.env.PORT || 8080
 
@@ -18,16 +26,17 @@ const app = express()
 const httpServer = new HttpServer(app)
 const io = new IOServer(httpServer)
 
-const auth = (req, res, next) => {
-    if (req.session.name) return next()
-    return res.redirect("/login")
-}
 
 app.set("views", path.join(__dirname, "views"))
 app.set("view engine", "ejs")
 
-app.use(cookieParser())
-app.use(session({
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+app.use(express.static(__dirname + "/public"))
+app.use(cors())
+connectDB()
+
+app.use(session({  
     store: MongoStore.create({
         mongoUrl: MONGODB_URI,
         mongoOptions: {
@@ -38,40 +47,88 @@ app.use(session({
     }),
     secret: "qwerty",
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true    
 }))
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
-app.use(express.static(__dirname + "/public"))
-app.use(cors())
-connectDB()
+app.use(flash())
+app.use(passport.initialize())
+app.use(passport.session())
 
+passport.use('login', new LocalStrategy((userName, password, done) => {
+    return User.findOne({ userName })
+        .then(user => {
+            if (!user) {
+                return done(null, false, { message: 'Nombre de usario incorrecto' })
+            }
+            if (!isValidPassword(user.password, password)) {
+                return done(null, false, { message: 'Contraseña incorrecta' })
+            }
+            return done(null, user)
+        })
+        .cath(err => done(err))
+}))
 
-app.get("/", auth, (req, res) => {
-    res.cookie('userName', req.session.name).render("index", { user: req.session.name })
+passport.use('signup', new LocalStrategy({ passReqToCallback: true }, (req, userName, password, done) => {
+    return User.findOne({ userName })
+        .then(user => {
+            if (user) {
+                return done(null, false, { message: 'El nombre de usario ya existe' })
+            }
+            const newUser = new User()
+            newUser.userName = userName
+            newUser.password = createHash(password)
+            newUser.email = req.body.email
+            console.log(newUser)
+            return newUser.save()
+        })
+        .then(user => done(null, user))
+        .cath(err => done(err))
+}))
+
+passport.serializeUser((user, done) => {
+    console.log('serailizeUser')
+    done(null, user._id)
+})
+
+passport.deserializeUser((id, done) => {
+    console.log('DeserealizeUser')
+    User.findById(id, (err, user) => {
+        done(err, user)
+    })
+})
+
+app.get("/", (req, res) => {
+    res.render("index", { user: req.session.name, email: req.session.email })
 })
 app.get("/api/productos-test", (req, res) => {
     const db = getAllTest()
     res.render("tabla.ejs", { db })
 })
-app.get("/login", (req, res) => {
-    console.log(req.session.name)
-    res.render("login.ejs")
+app.get("/login", (req, res) => {    
+    res.render("login.ejs", { message: req.flash('error') })
 })
-app.post("/login", (req, res) => {
-    req.session.name = req.body.name
-    res.redirect("/")
-})
+app.post("/login", passport.authenticate('login', {
+    successRedirect: '/',
+    failureRedirect: '/login',
+    failureFlash: true
+}))
 app.get("/logout", (req, res) => {
     return req.session.destroy(err => {
         if (!err) {
-            return res.clearCookie("userName").send({ logout: true })
+            return res.send({ logout: true })
         }
         return res.send({ err: err })
     })
-
 })
+app.get("/signup", (req, res) => {
+    return res.render("signUp.ejs", { message: req.flash('error') })
+})
+app.post("/signup", passport.authenticate('signup',{
+    successRedirect: '/',
+    failureRedirect: '/signup',
+    failureFlash: true
+}))
+
 const server = httpServer.listen(PORT, "127.0.0.1", () => {
     console.log(`Server on port: ${server.address().port}`)
 })
