@@ -22,6 +22,12 @@ const User = require("./src/model/user.js")
 
 const PORT = process.env.PORT || 8080
 
+const auth = (req, res, next) => {
+    if (req.session.name) return next()
+    return res.redirect("/login")
+}
+
+
 const app = express()
 const httpServer = new HttpServer(app)
 const io = new IOServer(httpServer)
@@ -36,7 +42,7 @@ app.use(express.static(__dirname + "/public"))
 app.use(cors())
 connectDB()
 
-app.use(session({  
+app.use(session({
     store: MongoStore.create({
         mongoUrl: MONGODB_URI,
         mongoOptions: {
@@ -44,7 +50,7 @@ app.use(session({
             useUnifiedTopology: true
         },
         ttl: 600000
-    }),
+    }),      
     secret: "qwerty",
     resave: true,
     saveUninitialized: true    
@@ -54,8 +60,8 @@ app.use(flash())
 app.use(passport.initialize())
 app.use(passport.session())
 
-passport.use('login', new LocalStrategy((userName, password, done) => {
-    return User.findOne({ userName })
+passport.use('login', new LocalStrategy((username, password, done) => {
+    return User.findOne({ username })
         .then(user => {
             if (!user) {
                 return done(null, false, { message: 'Nombre de usario incorrecto' })
@@ -65,24 +71,24 @@ passport.use('login', new LocalStrategy((userName, password, done) => {
             }
             return done(null, user)
         })
-        .cath(err => done(err))
+        .catch(err => done(err))
 }))
 
-passport.use('signup', new LocalStrategy({ passReqToCallback: true }, (req, userName, password, done) => {
-    return User.findOne({ userName })
+passport.use('signup', new LocalStrategy({ passReqToCallback: true }, (req, username, password, done) => {
+    return User.findOne({ username })
         .then(user => {
             if (user) {
                 return done(null, false, { message: 'El nombre de usario ya existe' })
             }
             const newUser = new User()
-            newUser.userName = userName
+            newUser.username = username
             newUser.password = createHash(password)
             newUser.email = req.body.email
             console.log(newUser)
             return newUser.save()
         })
         .then(user => done(null, user))
-        .cath(err => done(err))
+        .catch(err => done(err))
 }))
 
 passport.serializeUser((user, done) => {
@@ -98,7 +104,7 @@ passport.deserializeUser((id, done) => {
 })
 
 app.get("/", (req, res) => {
-    res.render("index", { user: req.session.name, email: req.session.email })
+    res.render("index", { user:req.flash('user'), email:req.flash('email') })
 })
 app.get("/api/productos-test", (req, res) => {
     const db = getAllTest()
