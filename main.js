@@ -1,4 +1,6 @@
 const express = require("express")
+const {fork}=require('child_process')
+const parseArgs = require('minimist')
 
 const MongoStore = require("connect-mongo")
 const session = require("express-session")
@@ -20,7 +22,14 @@ const { getAllChats, addChat } = require('./src/controller/chat.controller.js')
 const { MONGODB_URI } = require("./config.js")
 const User = require("./src/model/user.js")
 
-const PORT = process.env.PORT || 8080
+const options={
+    default:{
+        PORT:8080
+    }
+}
+const args_port = parseArgs(process.argv.slice(2), options)
+console.log(args_port)
+const PORT = args_port.PORT || 8080
 
 const auth = (req, res, next) => {
     if (req.session.name) return next()
@@ -50,10 +59,10 @@ app.use(session({
             useUnifiedTopology: true
         },
         ttl: 600000
-    }),      
+    }),
     secret: "qwerty",
     resave: true,
-    saveUninitialized: true    
+    saveUninitialized: true
 }))
 
 app.use(flash())
@@ -103,14 +112,32 @@ passport.deserializeUser((id, done) => {
     })
 })
 
+app.get('/info', (req,res)=>{
+    let argv=process.argv.slice(2)
+    let name=process.platform
+    let version=process.version
+    let rss=JSON.stringify(process.memoryUsage(), null,2)
+    let path=process.execPath
+    let pid=process.pid
+    let folder=process.cwd()
+    return res.render('info.ejs', {argv, name, version, rss, path, pid, folder})
+})
+
+app.post('/api/randoms', (req,res)=>{
+    const calcular=fork('/calcular.js')
+    calcular.on('message', result=>{
+        return res.end(`randoms ${result}`)
+    })
+})
+
 app.get("/", (req, res) => {
-    res.render("index", { user:req.flash('user'), email:req.flash('email') })
+    res.render("index", { user: req.flash('user'), email: req.flash('email') })
 })
 app.get("/api/productos-test", (req, res) => {
     const db = getAllTest()
     res.render("tabla.ejs", { db })
 })
-app.get("/login", (req, res) => {    
+app.get("/login", (req, res) => {
     res.render("login.ejs", { message: req.flash('error') })
 })
 app.post("/login", passport.authenticate('login', {
@@ -129,7 +156,7 @@ app.get("/logout", (req, res) => {
 app.get("/signup", (req, res) => {
     return res.render("signUp.ejs", { message: req.flash('error') })
 })
-app.post("/signup", passport.authenticate('signup',{
+app.post("/signup", passport.authenticate('signup', {
     successRedirect: '/',
     failureRedirect: '/signup',
     failureFlash: true
