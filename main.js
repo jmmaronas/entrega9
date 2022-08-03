@@ -57,8 +57,7 @@ app.use(session({
         mongoOptions: {
             useNewUrlParser: true,
             useUnifiedTopology: true
-        },
-        ttl: 600000
+        }        
     }),
     secret: "qwerty",
     resave: true,
@@ -123,8 +122,11 @@ app.get('/info', (req,res)=>{
     return res.render('info.ejs', {argv, name, version, rss, path, pid, folder})
 })
 
-app.post('/api/randoms', (req,res)=>{
-    const calcular=fork('/calcular.js')
+app.post('/api/randoms', (req,res)=>{    
+    const maxi=req.query.cant
+    console.log(maxi)
+    const calcular=fork('./calcular.js')
+    calcular.send(maxi)
     calcular.on('message', result=>{
         return res.end(`randoms ${result}`)
     })
