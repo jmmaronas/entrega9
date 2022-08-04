@@ -122,14 +122,14 @@ app.get('/info', (req,res)=>{
     return res.render('info.ejs', {argv, name, version, rss, path, pid, folder})
 })
 
-app.post('/api/randoms', (req,res)=>{    
-    const maxi=req.query.cant
+app.get('/api/randoms', (req,res)=>{    
+    const maxi=req.query.cant||100000
     console.log(maxi)
     const calcular=fork('./calcular.js')
-    calcular.send(maxi)
     calcular.on('message', result=>{
-        return res.end(`randoms ${result}`)
+        return res.status(200).end(`randoms ${result}`)
     })
+    calcular.send(maxi)
 })
 
 app.get("/", (req, res) => {

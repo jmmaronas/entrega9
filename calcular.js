@@ -1,8 +1,7 @@
-let max = 100000000
+
 const repeticiones = []
-process.on('message', message =>{
-    console.log(`El:${typeof message}`)
-    max=Number(message)    
+process.on('message', message =>{    
+    let max=Number(message)    
     for (let i = 0; i < max; i++) {
         repeticiones.push({ numero: (Math.floor(Math.random() * (1000 - 1)) + 0) })
     }    
