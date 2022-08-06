@@ -1,6 +1,7 @@
 const express = require("express")
-const {fork}=require('child_process')
+const { fork } = require('child_process')
 const parseArgs = require('minimist')
+const cluster = require('cluster')
 
 const MongoStore = require("connect-mongo")
 const session = require("express-session")
@@ -22,14 +23,16 @@ const { getAllChats, addChat } = require('./src/controller/chat.controller.js')
 const { MONGODB_URI } = require("./config.js")
 const User = require("./src/model/user.js")
 
-const options={
-    default:{
-        PORT:8080
+const options = {
+    default: {
+        PORT: 8080,
+        modo: "FOLKER",        
     }
 }
-const args_port = parseArgs(process.argv.slice(2), options)
-console.log(args_port)
-const PORT = args_port.PORT || 8080
+const args = parseArgs(process.argv.slice(2), options)
+
+const PORT = args.PORT
+const modo = args.modo
 
 const auth = (req, res, next) => {
     if (req.session.name) return next()
@@ -57,7 +60,7 @@ app.use(session({
         mongoOptions: {
             useNewUrlParser: true,
             useUnifiedTopology: true
-        }        
+        }
     }),
     secret: "qwerty",
     resave: true,
@@ -111,22 +114,23 @@ passport.deserializeUser((id, done) => {
     })
 })
 
-app.get('/info', (req,res)=>{
-    let argv=process.argv.slice(2)
-    let name=process.platform
-    let version=process.version
-    let rss=JSON.stringify(process.memoryUsage(), null,2)
-    let path=process.execPath
-    let pid=process.pid
-    let folder=process.cwd()
-    return res.render('info.ejs', {argv, name, version, rss, path, pid, folder})
+app.get('/info', (req, res) => {
+    let argv = process.argv.slice(2)
+    let name = process.platform
+    let version = process.version
+    let rss = JSON.stringify(process.memoryUsage(), null, 2)
+    let path = process.execPath
+    let pid = process.pid
+    let folder = process.cwd()
+    let numCPUs = require('os').cpus().length
+    return res.render('info.ejs', { argv, name, version, rss, path, pid, folder, numCPUs })
 })
 
-app.get('/api/randoms', (req,res)=>{    
-    const maxi=req.query.cant||100000
+app.get('/api/randoms', (req, res) => {
+    const maxi = req.query.cant || 100000
     console.log(maxi)
-    const calcular=fork('./calcular.js')
-    calcular.on('message', result=>{
+    const calcular = fork('./calcular.js')
+    calcular.on('message', result => {
         return res.status(200).end(`randoms ${result}`)
     })
     calcular.send(maxi)
@@ -163,14 +167,31 @@ app.post("/signup", passport.authenticate('signup', {
     failureRedirect: '/signup',
     failureFlash: true
 }))
+if (modo==='FOLKER') {
+    if (cluster.isMaster) {
+        cluster.fork()
+    }else{
+        console.log(`Nodo Worker corriendo en el proceso ${process.pid}`)
+        const server = httpServer.listen(PORT, "127.0.0.1", () => {
+            console.log(`Server on port: ${server.address().port}`)
+        })
+        server.on("error", (err) => {
+            console.error(err)
+        })
+    }
+} else {
+    if (cluster.isMaster) {
+        console.log(`Nodo Master corriendo en el proceso ${process.pid}`)
+        const server = httpServer.listen(PORT, "127.0.0.1", () => {
+            console.log(`Server on port: ${server.address().port}`)
+        })
+        server.on("error", (err) => {
+            console.error(err)
+        })
+    }
+}
 
-const server = httpServer.listen(PORT, "127.0.0.1", () => {
-    console.log(`Server on port: ${server.address().port}`)
-})
 
-server.on("error", (err) => {
-    console.error(err)
-})
 
 io.on("connection", async socket => {
     console.log("NuevoCliente concectado", socket.id)
